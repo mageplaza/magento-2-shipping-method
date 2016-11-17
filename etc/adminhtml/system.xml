@@ -4,7 +4,7 @@
     <system>
         <section id="carriers" translate="label" type="text" sortOrder="320" showInDefault="1" showInWebsite="1"
                  showInStore="1">
-            <group id="shipping" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1"
+            <group id="simpleshipping" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1"
                    showInStore="1">
                 <label>Mageplaza Simple Shipping Method</label>
                 <field id="enable" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1"

@@ -10,7 +10,7 @@ class Shipping extends \Magento\Shipping\Model\Carrier\AbstractCarrier implement
     /**
      * @var string
      */
-    protected $_code = 'shipping';
+    protected $_code = 'simpleshipping';
 
     /**
      * Shipping constructor.
