@@ -2,12 +2,12 @@
 
 
 
-## Step 1: Create config.xml file
+### Step 1: Create config.xml file
 
 
 Create a module call: `Simpleshipping` located in `app/code/Mageplaza/Simpleshipping`
 
-![shipping method in magento 2](https://i.imgur.com/xNM7TOu.png)
+![shipping method in magento 2](https://cdn.mageplaza.com/media/general/xNM7TOu.png)
 
 - [app/code/Mageplaza/Simpleshipping/registration.php](https://github.com/mageplaza/magento-2-shipping-method/blob/master/registration.php)
 - [app/code/Mageplaza/Simpleshipping/etc/module.xml](https://github.com/mageplaza/magento-2-shipping-method/blob/master/etc/module.xml)
@@ -20,14 +20,14 @@ Now create `config.xml` at `app/code/Mageplaza/Simpleshipping/etc/config.xml`
     <default>
         <carriers>
             <simpleshipping>
-                <enable>1</enable>
+                <active>1</active>
                 <sallowspecific>0</sallowspecific>
                 <model>Mageplaza\Simpleshipping\Model\Carrier\Shipping</model>
                 <name>Mageplaza Sample Shipping Method</name>
                 <price>10.00</price>
                 <title>Mageplaza Sample Shipping Method</title>
-                <type>I</type>
-                <specific_error_msg>This shipping method is not available. To use this shipping method, please contact us.</specific_error_msg>
+                <specificerrmsg>This shipping method is not available. To use this shipping method, please contact us.</specificerrmsg>
+                <handling_type>F</handling_type>
             </simpleshipping>
         </carriers>
     </default>
@@ -36,7 +36,7 @@ Now create `config.xml` at `app/code/Mageplaza/Simpleshipping/etc/config.xml`
 
 The shipping method code should be child of `default > carriers`. And this code should be exactly same with $_code in `app/code/Mageplaza/Simpleshipping/Model/Carrier/Shipping.php:13`
 
-## Step 2: Create shipping model
+### Step 2: Create shipping model
 
 Next, we need to create a model class for this **shipping method in Magento 2**
 
@@ -56,6 +56,16 @@ class Shipping extends \Magento\Shipping\Model\Carrier\AbstractCarrier implement
      * @var string
      */
     protected $_code = 'simpleshipping';
+
+    /**
+     * @var \Magento\Shipping\Model\Rate\ResultFactory
+     */
+    protected $_rateResultFactory;
+
+    /**
+     * @var \Magento\Quote\Model\Quote\Address\RateResult\MethodFactory
+     */
+    protected $_rateMethodFactory;
 
     /**
      * Shipping constructor.
@@ -90,12 +100,24 @@ class Shipping extends \Magento\Shipping\Model\Carrier\AbstractCarrier implement
     }
 
     /**
+     * @return float
+     */
+    private function getShippingPrice()
+    {
+        $configPrice = $this->getConfigData('price');
+
+        $shippingPrice = $this->getFinalPriceWithHandlingFee($configPrice);
+
+        return $shippingPrice;
+    }
+
+    /**
      * @param RateRequest $request
      * @return bool|Result
      */
     public function collectRates(RateRequest $request)
     {
-        if (!$this->getConfigFlag('enable')) {
+        if (!$this->getConfigFlag('active')) {
             return false;
         }
 
@@ -111,7 +133,7 @@ class Shipping extends \Magento\Shipping\Model\Carrier\AbstractCarrier implement
         $method->setMethod($this->_code);
         $method->setMethodTitle($this->getConfigData('name'));
 
-        $amount = $this->getConfigData('price');
+        $amount = $this->getShippingPrice();
 
         $method->setPrice($amount);
         $method->setCost($amount);
@@ -123,7 +145,7 @@ class Shipping extends \Magento\Shipping\Model\Carrier\AbstractCarrier implement
 }
 ```
 
-## Step 3: Create configuration file
+### Step 3: Create configuration file
 
 Now create `system.xml` file at `app/code/Mageplaza/Simpleshipping/etc/adminhtml/system.xml`
 
@@ -133,65 +155,52 @@ with the following content:
 
 ``` xml
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
-        <section id="carriers" translate="label" type="text" sortOrder="320" showInDefault="1" showInWebsite="1"
-                 showInStore="1">
-            <group id="simpleshipping" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1"
-                   showInStore="1">
+        <section id="carriers" translate="label" type="text" sortOrder="320" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="simpleshipping" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Mageplaza Simple Shipping Method</label>
-                <field id="enable" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1"
-                       showInStore="0">
+                <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="name" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1"
-                       showInStore="1">
+                <field id="name" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Method Name</label>
                 </field>
-                <field id="price" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1"
-                       showInStore="0">
+                <field id="price" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
                     <label>Price</label>
                     <validate>validate-number validate-zero-or-greater</validate>
                 </field>
-                <field id="handling_type" translate="label" type="select" sortOrder="7" showInDefault="1"
-                       showInWebsite="1" showInStore="0">
+                <field id="handling_type" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
                     <label>Calculate Handling Fee</label>
                     <source_model>Magento\Shipping\Model\Source\HandlingType</source_model>
                 </field>
-                <field id="handling_fee" translate="label" type="text" sortOrder="8" showInDefault="1" showInWebsite="1"
-                       showInStore="0">
+                <field id="handling_fee" translate="label" type="text" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Handling Fee</label>
                     <validate>validate-number validate-zero-or-greater</validate>
                 </field>
-                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1"
-                       showInStore="0">
+                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Sort Order</label>
                 </field>
-                <field id="title" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1"
-                       showInStore="1">
+                <field id="title" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Title</label>
                 </field>
-                <field id="sallowspecific" translate="label" type="select" sortOrder="90" showInDefault="1"
-                       showInWebsite="1" showInStore="0">
+                <field id="sallowspecific" translate="label" type="select" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
                     <label>Ship to Applicable Countries</label>
                     <frontend_class>shipping-applicable-country</frontend_class>
                     <source_model>Magento\Shipping\Model\Config\Source\Allspecificcountries</source_model>
                 </field>
-                <field id="specific_country" translate="label" type="multiselect" sortOrder="91" showInDefault="1"
-                       showInWebsite="1" showInStore="0">
+                <field id="specificcountry" translate="label" type="multiselect" sortOrder="91" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Ship to Specific Countries</label>
                     <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
                     <can_be_empty>1</can_be_empty>
                 </field>
-                <field id="show_method" translate="label" type="select" sortOrder="92" showInDefault="1"
-                       showInWebsite="1" showInStore="0">
+                <field id="showmethod" translate="label" type="select" sortOrder="92" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Show Method if Not Applicable</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <frontend_class>shipping-skip-hide</frontend_class>
                 </field>
-                <field id="specific_error_msg" translate="label" type="textarea" sortOrder="80" showInDefault="1"
-                       showInWebsite="1" showInStore="1">
+                <field id="specificerrmsg" translate="label" type="textarea" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Displayed Error Message</label>
                 </field>
             </group>
@@ -201,7 +210,7 @@ with the following content:
 ```
 
 
-## Step 4: Enable module
+### Step 4: Enable module
 
 This is final step, you need to run upgrade command to enable Simple Shipping method.
 
@@ -210,4 +219,3 @@ php bin/magento setup:upgrade
 ```
 
 [Flush Magento cache](https://www.mageplaza.com/kb/how-flush-enable-disable-cache.html) if any.
-
